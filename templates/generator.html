@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Token Generator{% endblock %}
+{% block header_title %}Attendance Token Generator{% endblock %}
+{% block header_subtitle %}Input student credentials and trigger synchronous counter clock transition{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Form Section -->
+    <div class="col-lg-6">
+        <div class="custom-card h-100">
+            <h5 class="fw-bold text-light mb-3"><i class="bi bi-person-badge-fill me-2 text-primary"></i>Record Attendance Entry</h5>
+            <p class="text-muted small mb-4">
+                Submitting a student attendance record generates a clock pulse to the 4-bit flip-flop counter, transitioning its state and issuing a sequential token.
+            </p>
+
+            <!-- Quick Autofill Helper -->
+            <div class="mb-3 p-2 bg-dark rounded border border-secondary">
+                <label class="form-label small text-info fw-semibold mb-1">
+                    <i class="bi bi-magic me-1"></i> Quick Fill (Synthetic Student Roster)
+                </label>
+                <select class="form-select form-select-custom form-select-sm" onchange="selectSyntheticStudent(this)">
+                    <option value="">-- Choose Synthetic Student to Auto-populate --</option>
+                    {% for st in students %}
+                    <option value="{{ st.student_id }}|{{ st.name }}">{{ st.student_id }} - {{ st.name }} ({{ st.department }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <form id="attendance-form" onsubmit="handleGenerateToken(event)">
+                <div class="mb-3">
+                    <label for="student_id" class="form-label small fw-bold text-muted">STUDENT ID <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control form-control-custom font-monospace" id="student_id" placeholder="e.g. STU001" required autocomplete="off">
+                    <div class="form-text text-muted" style="font-size: 0.75rem;">3-20 characters alphanumeric (e.g., STU001, STU015)</div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="student_name" class="form-label small fw-bold text-muted">STUDENT FULL NAME <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control form-control-custom" id="student_name" placeholder="e.g. Aarav Sharma" required autocomplete="off">
+                    <div class="form-text text-muted" style="font-size: 0.75rem;">Full student name (synthetic personal data only)</div>
+                </div>
+
+                <div class="d-grid gap-2 mb-4">
+                    <button type="submit" class="btn btn-primary-tech py-2" id="btn-generate">
+                        <i class="bi bi-cpu-fill me-1"></i> Generate Attendance Token
+                    </button>
+                </div>
+            </form>
+
+            <!-- Management Buttons -->
+            <div class="pt-3 border-top border-secondary d-flex justify-content-between align-items-center">
+                <button type="button" class="btn btn-warning-tech btn-sm" onclick="handleResetCounter()">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Counter (0000)
+                </button>
+                <button type="button" class="btn btn-danger-tech btn-sm" onclick="handleClearData()">
+                    <i class="bi bi-trash3 me-1"></i> Clear Data Session
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Transition & Generated Token Result -->
+    <div class="col-lg-6">
+        <!-- Result Display Card -->
+        <div class="custom-card mb-4 {% if not status.latest_transition %}d-none{% endif %}" id="generator-result-card">
+            <h5 class="fw-bold text-light mb-3"><i class="bi bi-check-circle-fill me-2 text-success"></i>Generated Attendance Token</h5>
+
+            <div class="text-center p-4 bg-dark border border-secondary rounded-3 mb-3">
+                <div class="small text-muted text-uppercase fw-bold mb-1">Official Attendance Token</div>
+                <div class="token-badge-large mb-2" id="res-token">{{ status.current_token }}</div>
+                <div>
+                    <span class="badge bg-primary fs-6" id="res-cycle">Cycle {{ status.cycle }}</span>
+                    <span class="badge bg-dark border text-light fs-6 ms-2" id="res-record-id">REC-ID</span>
+                </div>
+            </div>
+
+            <div class="p-3 bg-dark rounded border border-secondary">
+                <div class="row g-2 small">
+                    <div class="col-6 text-muted">Registered Student:</div>
+                    <div class="col-6 fw-bold text-light text-end" id="res-student">-</div>
+                    
+                    <div class="col-6 text-muted">Counter Decimal (Binary):</div>
+                    <div class="col-6 font-monospace text-info text-end" id="res-counter">{{ status.counter_value }} ({{ status.binary_state }})</div>
+                    
+                    <div class="col-6 text-muted">Verification Status:</div>
+                    <div class="col-6 text-end"><span class="badge bg-success">ACCEPTED</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flip-Flop Clock Transition Card -->
+        <div class="custom-card" id="transition-display">
+            <h5 class="fw-bold text-light mb-3"><i class="bi bi-arrow-left-right me-2 text-info"></i>Digital Logic State Transition</h5>
+            <p class="small text-muted mb-3">
+                Demonstrates how the clock pulse updates the flip-flops based on the synchronous excitation logic.
+            </p>
+
+            <div class="p-3 bg-dark border border-secondary rounded-3 mb-3">
+                <div class="row text-center align-items-center">
+                    <div class="col-5">
+                        <div class="text-muted small fw-bold mb-1">PREVIOUS STATE</div>
+                        <div class="fs-4 font-monospace fw-bold text-muted" id="tr-prev">
+                            {% if status.latest_transition %}{{ status.latest_transition.previous_state.binary }}{% else %}0000{% endif %}
+                        </div>
+                        <div class="small text-muted">Q3 Q2 Q1 Q0</div>
+                    </div>
+                    <div class="col-2">
+                        <i class="bi bi-arrow-right-circle-fill fs-2 text-primary"></i>
+                        <div class="small fw-bold text-primary">CLK</div>
+                    </div>
+                    <div class="col-5">
+                        <div class="text-muted small fw-bold mb-1">NEXT STATE</div>
+                        <div class="fs-4 font-monospace fw-bold text-info" id="tr-next">
+                            {{ status.binary_state }}
+                        </div>
+                        <div class="small text-info">Q3 Q2 Q1 Q0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Excitation Values -->
+            <div class="p-2 bg-dark rounded border border-secondary small font-monospace">
+                <div class="mb-1 text-info">
+                    <strong>T-Flip-Flop: </strong><span id="tr-t-excitations">T3={{ status.excitations.t3 }}, T2={{ status.excitations.t2 }}, T1={{ status.excitations.t1 }}, T0={{ status.excitations.t0 }}</span>
+                </div>
+                <div class="text-purple">
+                    <strong>D-Flip-Flop: </strong><span id="tr-d-excitations">D3={{ status.excitations.d3 }}, D2={{ status.excitations.d2 }}, D1={{ status.excitations.d1 }}, D0={{ status.excitations.d0 }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

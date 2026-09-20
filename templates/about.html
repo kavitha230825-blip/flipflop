@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}About Project{% endblock %}
+{% block header_title %}About Project Documentation{% endblock %}
+{% block header_subtitle %}Academic report for EC2201 Digital Systems: Flip-Flop Based Attendance Token Generator{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Main Content Column -->
+    <div class="col-lg-9">
+        <!-- 1. Overview & Problem Statement -->
+        <div class="custom-card mb-4">
+            <h4 class="fw-bold text-light mb-3"><i class="bi bi-mortarboard-fill me-2 text-primary"></i>1. Project Overview & Problem Statement</h4>
+            <div class="text-muted small" style="line-height: 1.8;">
+                <p>
+                    <strong class="text-light">Course:</strong> EC2201 Digital Systems<br>
+                    <strong class="text-light">Project Title:</strong> Flip-Flop Based Attendance Token Generator
+                </p>
+                <p>
+                    <strong class="text-light">Problem Statement:</strong> In traditional manual attendance systems and basic electronic loggers, token generation can suffer from race conditions, unsynchronized states, duplicate attendance marking, and inconsistent identification. In digital engineering, synchronous sequential logic guarantees glitch-free deterministic state progression dictated by a master clock line.
+                </p>
+                <p>
+                    <strong class="text-light">Objective:</strong> To engineer and simulate a real-world attendance token generator modeled strictly on digital hardware principles—specifically a 4-bit synchronous binary up-counter built from flip-flops—while demonstrating fault detection, duplicate suppression, and cycle handling.
+                </p>
+                <p>
+                    <strong class="text-light">Proposed Solution:</strong> A software simulation where student check-ins act as clock pulses. A digital 4-bit counter ($Q_3 Q_2 Q_1 Q_0$) increments on each valid check-in, assigning a structured attendance token ($ATT\text{-}XXX$) mapped directly to the hardware counter state. Global record persistence ($REC\text{-}XXX$) is cleanly decoupled from the 16-state modulo digital counter.
+                </p>
+            </div>
+        </div>
+
+        <!-- 2. Digital Logic & Flip-Flop Equations -->
+        <div class="custom-card mb-4">
+            <h4 class="fw-bold text-light mb-3"><i class="bi bi-cpu-fill me-2 text-info"></i>2. 4-Bit Synchronous Counter & Flip-Flop Concepts</h4>
+            <div class="text-muted small" style="line-height: 1.8;">
+                <p>
+                    A flip-flop is a bistable multivibrator capable of storing 1 bit of memory. A 4-bit binary counter utilizes 4 flip-flops ($Q_3, Q_2, Q_1, Q_0$) to count from $0000_2$ ($0_{10}$) through $1111_2$ ($15_{10}$) and wraps modulo-16 back to $0000_2$.
+                </p>
+                <h6 class="fw-bold text-cyan mt-3">T-Flip-Flop Excitation Logic</h6>
+                <p>
+                    In a T-flip-flop, the next state is given by the characteristic equation $Q^+ = Q \oplus T$. For a synchronous binary up-counter:
+                </p>
+                <div class="p-3 bg-dark rounded border border-secondary font-monospace text-info mb-3">
+                    T0 = 1 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Q0 toggles on every active clock pulse]<br>
+                    T1 = Q0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Q1 toggles when Q0 is 1]<br>
+                    T2 = Q1 AND Q0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Q2 toggles when lower bits are all 1]<br>
+                    T3 = Q2 AND Q1 AND Q0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Q3 toggles when Q2, Q1, Q0 are all 1]
+                </div>
+
+                <h6 class="fw-bold text-purple mt-3">D-Flip-Flop Equivalent Next-State Logic</h6>
+                <p>
+                    In a D-flip-flop, the input $D$ directly dictates the next state ($Q^+ = D$). The equivalent D inputs implementing the same synchronous counter are:
+                </p>
+                <div class="p-3 bg-dark rounded border border-secondary font-monospace text-purple mb-3">
+                    D0 = NOT Q0<br>
+                    D1 = Q1 XOR Q0<br>
+                    D2 = Q2 XOR (Q1 AND Q0)<br>
+                    D3 = Q3 XOR (Q2 AND Q1 AND Q0)
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. System Architecture & Operation -->
+        <div class="custom-card mb-4">
+            <h4 class="fw-bold text-light mb-3"><i class="bi bi-gear-wide-connected me-2 text-warning"></i>3. Token Generation, Duplicate Prevention & Cycle Architecture</h4>
+            <div class="text-muted small" style="line-height: 1.8;">
+                <ul>
+                    <li>
+                        <strong class="text-light">Token Generation:</strong> Tokens represent the current 4-bit counter decimal value zero-padded to 3 digits (e.g., $0001 \to ATT\text{-}001$, $1111 \to ATT\text{-}015$). When the counter wraps $1111 \to 0000$, it generates $ATT\text{-}000$ in the next cycle.
+                    </li>
+                    <li>
+                        <strong class="text-light">Decoupled Record Uniqueness:</strong> While the 4-bit hardware counter cycles through 16 states ($0000 \dots 1111$), every attendance record is assigned an invariant sequential Record ID ($REC\text{-}001, REC\text{-}002, \dots$). Record IDs are never reset or reused during normal operation.
+                    </li>
+                    <li>
+                        <strong class="text-light">Duplicate Student Attendance Prevention:</strong> If a student attempts to record attendance again in the active session, the system flags <span class="badge bg-warning text-dark">DUPLICATE_STUDENT_ATTENDANCE</span>. The request is rejected, the digital counter does NOT advance, no token is issued, and the fault is recorded in the system audit log.
+                    </li>
+                    <li>
+                        <strong class="text-light">Reset Behavior:</strong> Triggering Reset Counter zeroes the flip-flops ($Q_3 Q_2 Q_1 Q_0 \to 0000$), sets decimal to $0$, increments the session Cycle count, and writes a <span class="badge bg-danger">RESET</span> event to the audit log. Crucially, previous attendance records are preserved.
+                    </li>
+                    <li>
+                        <strong class="text-light">Counter Overflow Handling:</strong> When the counter reaches $1111_2$ ($15_{10}$) and receives the next pulse, it overflows to $0000_2$. The system automatically increments the Cycle count ($Cycle\ 1 \to Cycle\ 2$), logs <span class="badge bg-info text-dark">COUNTER_OVERFLOW</span>, and continues operation without data collision.
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 4. Synthetic Data & Technologies -->
+        <div class="custom-card mb-4">
+            <h4 class="fw-bold text-light mb-3"><i class="bi bi-code-slash me-2 text-success"></i>4. Technologies & Synthetic Data</h4>
+            <div class="text-muted small" style="line-height: 1.8;">
+                <p>
+                    <strong class="text-light">Synthetic Dataset:</strong> In compliance with academic guidelines, all student names and roll numbers are synthetic mock records (e.g., <code>STU001 - Aarav Sharma</code>, <code>STU002 - Diya Patel</code>). No real personal information is collected or processed.
+                </p>
+                <div class="row g-2 mt-2">
+                    <div class="col-md-6">
+                        <div class="p-3 bg-dark rounded border border-secondary">
+                            <strong class="text-light">Backend Stack</strong>
+                            <ul class="mb-0 mt-1">
+                                <li>Python 3.12 (Pure Logic separation)</li>
+                                <li>Flask 3.1 (REST API & Routing)</li>
+                                <li>Pandas & NumPy (CSV Data & Analytics)</li>
+                                <li>Python unittest (Automated Verification)</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 bg-dark rounded border border-secondary">
+                            <strong class="text-light">Frontend Stack</strong>
+                            <ul class="mb-0 mt-1">
+                                <li>HTML5 & Semantic Markup</li>
+                                <li>Modern Responsive CSS3</li>
+                                <li>Bootstrap 5.3 & Bootstrap Icons</li>
+                                <li>Chart.js (Interactive Data Visualization)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Real-World Applications -->
+        <div class="custom-card">
+            <h4 class="fw-bold text-light mb-3"><i class="bi bi-building-check me-2 text-cyan"></i>5. Practical Applications</h4>
+            <div class="text-muted small" style="line-height: 1.8;">
+                <p>
+                    The concepts demonstrated here form the foundation of numerous real-world digital engineering systems:
+                </p>
+                <ul>
+                    <li><strong>Smart Campus Access & Turnstiles:</strong> Hardware token generators controlling physical turnstile access based on synchronous counters and RFID pulses.</li>
+                    <li><strong>Queue Management Systems:</strong> Bank and hospital counter ticket dispensers driven by sequential digital logic.</li>
+                    <li><strong>Factory Assembly Line Trackers:</strong> Conveyor belt item counters using optical interrupt sensors as clock inputs to flip-flop registers.</li>
+                    <li><strong>Hardware Security & PRNG:</strong> Linear feedback shift registers (LFSR) built on flip-flop chains for cryptographic pseudo-random sequence generation.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Reference Sidebar -->
+    <div class="col-lg-3">
+        <div class="custom-card mb-4">
+            <h6 class="fw-bold text-light mb-3">Project Metadata</h6>
+            <ul class="list-unstyled small text-muted">
+                <li class="mb-2"><strong class="text-light">Course:</strong> EC2201 Digital Systems</li>
+                <li class="mb-2"><strong class="text-light">Logic Type:</strong> Synchronous Sequential</li>
+                <li class="mb-2"><strong class="text-light">Counter:</strong> 4-Bit Modulo-16</li>
+                <li class="mb-2"><strong class="text-light">Flip-Flop:</strong> T and D Configurations</li>
+                <li class="mb-2"><strong class="text-light">Clock Trigger:</strong> Rising Edge (\(\uparrow\))</li>
+                <li class="mb-2"><strong class="text-light">Test Suite:</strong> 20 Automated Tests</li>
+            </ul>
+        </div>
+
+        <div class="custom-card">
+            <h6 class="fw-bold text-light mb-3">Quick Navigation</h6>
+            <div class="d-grid gap-2">
+                <a href="/generator" class="btn btn-sm btn-primary-tech">Open Token Generator</a>
+                <a href="/simulator" class="btn btn-sm btn-cyan">Open Circuit Simulator</a>
+                <a href="/truth-table" class="btn btn-sm btn-secondary-tech">Inspect Truth Table</a>
+                <a href="/test-cases" class="btn btn-sm btn-secondary-tech">Run 20 Test Cases</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

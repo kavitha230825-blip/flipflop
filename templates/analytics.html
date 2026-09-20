@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics & Results{% endblock %}
+{% block header_title %}System Analytics & Insights{% endblock %}
+{% block header_subtitle %}Statistical breakdown of token throughput, fault taxonomy, and flip-flop toggling{% endblock %}
+
+{% block content %}
+<!-- Overview KPI Row -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="custom-card">
+            <div class="card-title-sm">Total Records</div>
+            <div class="card-value text-info">{{ analytics.total_records }}</div>
+            <div class="small text-muted mt-1">Recorded in CSV</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="custom-card">
+            <div class="card-title-sm">Successful Tokens</div>
+            <div class="card-value text-success">{{ status.successful_tokens }}</div>
+            <div class="small text-muted mt-1">Granted Attendance</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="custom-card">
+            <div class="card-title-sm">Duplicate Attempts</div>
+            <div class="card-value text-warning">{{ status.duplicate_attempts }}</div>
+            <div class="small text-muted mt-1">Blocked by Lock</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="custom-card">
+            <div class="card-title-sm">System Faults</div>
+            <div class="card-value text-danger">{{ status.fault_count }}</div>
+            <div class="small text-muted mt-1">Total Intercepted</div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-4 mb-4">
+    <!-- Chart 1: Token Distribution by Cycle -->
+    <div class="col-lg-6">
+        <div class="custom-card h-100">
+            <h5 class="fw-bold text-light mb-3"><i class="bi bi-bar-chart-line-fill me-2 text-primary"></i>Tokens per Counter Cycle</h5>
+            <div style="height: 280px; position: relative;">
+                <canvas id="cycleChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart 2: System Status Breakdown -->
+    <div class="col-lg-6">
+        <div class="custom-card h-100">
+            <h5 class="fw-bold text-light mb-3"><i class="bi bi-pie-chart-fill me-2 text-cyan"></i>Verification & Fault Classification</h5>
+            <div style="height: 280px; position: relative;">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Chart 3: Flip-Flop Bit Activity -->
+    <div class="col-lg-8">
+        <div class="custom-card h-100">
+            <h5 class="fw-bold text-light mb-3"><i class="bi bi-cpu-fill me-2 text-purple"></i>Flip-Flop Bit Frequency (Times in '1' State)</h5>
+            <div style="height: 280px; position: relative;">
+                <canvas id="bitFrequencyChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Digital Systems Concept Insight -->
+    <div class="col-lg-4">
+        <div class="custom-card h-100 d-flex flex-column justify-content-between">
+            <div>
+                <h5 class="fw-bold text-light mb-3"><i class="bi bi-journal-code me-2 text-info"></i>Digital Logic Observations</h5>
+                <ul class="list-group list-group-flush bg-transparent small text-muted">
+                    <li class="list-group-item bg-transparent text-light px-0 py-2 border-secondary">
+                        <strong class="text-info">T0 Frequency:</strong> Q0 toggles every cycle, exhibiting highest frequency (\(f_{clk} / 2\)).
+                    </li>
+                    <li class="list-group-item bg-transparent text-light px-0 py-2 border-secondary">
+                        <strong class="text-info">T1 Frequency:</strong> Q1 toggles at half Q0 frequency (\(f_{clk} / 4\)).
+                    </li>
+                    <li class="list-group-item bg-transparent text-light px-0 py-2 border-secondary">
+                        <strong class="text-info">T2 Frequency:</strong> Q2 toggles at \(f_{clk} / 8\).
+                    </li>
+                    <li class="list-group-item bg-transparent text-light px-0 py-2 border-secondary">
+                        <strong class="text-info">T3 Frequency:</strong> Q3 (MSB) toggles at \(f_{clk} / 16\).
+                    </li>
+                </ul>
+            </div>
+            <div class="p-2 bg-dark rounded border border-secondary text-center small text-muted">
+                Confirmed Modulo-16 Division Ratio
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Cycle Distribution Chart
+    const cycleData = {{ analytics.cycle_distribution | tojson }};
+    const cycleCtx = document.getElementById('cycleChart').getContext('2d');
+    new Chart(cycleCtx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(cycleData),
+            datasets: [{
+                label: 'Tokens Generated',
+                data: Object.values(cycleData),
+                backgroundColor: 'rgba(99, 102, 241, 0.7)',
+                borderColor: '#6366f1',
+                borderWidth: 1.5,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: '#1e293b' }, ticks: { color: '#94a3b8' } },
+                x: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8' } }
+            }
+        }
+    });
+
+    // 2. Status Breakdown Donut Chart
+    const statusData = {{ analytics.status_breakdown | tojson }};
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(statusData),
+            datasets: [{
+                data: Object.values(statusData),
+                backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#cbd5e1', padding: 15 } }
+            }
+        }
+    });
+
+    // 3. Bit Frequencies Chart
+    const bitData = {{ analytics.bit_frequencies | tojson }};
+    const bitCtx = document.getElementById('bitFrequencyChart').getContext('2d');
+    new Chart(bitCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Q0 (LSB)', 'Q1', 'Q2', 'Q3 (MSB)'],
+            datasets: [{
+                label: 'State Count (High / 1)',
+                data: [bitData['Q0'] || 0, bitData['Q1'] || 0, bitData['Q2'] || 0, bitData['Q3'] || 0],
+                backgroundColor: ['#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'],
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: '#1e293b' }, ticks: { color: '#94a3b8' } },
+                x: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8' } }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

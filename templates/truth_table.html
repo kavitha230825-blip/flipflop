@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Truth Table{% endblock %}
+{% block header_title %}4-Bit Synchronous Counter Truth Table{% endblock %}
+{% block header_subtitle %}Complete 16-state excitation table showing T and D flip-flop input values{% endblock %}
+
+{% block content %}
+<div class="custom-card mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div>
+            <h5 class="fw-bold text-light m-0"><i class="bi bi-table me-2 text-cyan"></i>Mod-16 State Transition & Excitation Table</h5>
+            <div class="small text-muted">Active current state is highlighted in cyan. Filter states using the search box.</div>
+        </div>
+        <div style="min-width: 250px;">
+            <div class="input-group">
+                <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control form-control-custom" id="truth-search-input" placeholder="Search state or decimal..." onkeyup="filterTruthTable()">
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="custom-card">
+    <div class="table-responsive">
+        <table class="table-custom text-center" id="truth-table">
+            <thead>
+                <tr>
+                    <th colspan="2" class="border-end border-secondary">Current State</th>
+                    <th colspan="4" class="border-end border-secondary text-info">T-Flip-Flop Excitation (T = Q ⊕ Q+)</th>
+                    <th colspan="4" class="border-end border-secondary text-purple">D-Flip-Flop Input (D = Q+)</th>
+                    <th colspan="2">Next State</th>
+                    <th>Condition</th>
+                </tr>
+                <tr class="small text-muted">
+                    <th>Binary (Q3 Q2 Q1 Q0)</th>
+                    <th class="border-end border-secondary">Decimal</th>
+                    <th>T3</th>
+                    <th>T2</th>
+                    <th>T1</th>
+                    <th class="border-end border-secondary">T0</th>
+                    <th>D3</th>
+                    <th>D2</th>
+                    <th>D1</th>
+                    <th class="border-end border-secondary">D0</th>
+                    <th>Binary (Q3+ Q2+ Q1+ Q0+)</th>
+                    <th>Decimal</th>
+                    <th>Note</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in truth_table %}
+                <tr class="{% if row.current_binary == status.binary_state %}highlight-active{% endif %}">
+                    <td class="font-monospace fw-bold {% if row.current_binary == status.binary_state %}text-cyan{% else %}text-light{% endif %}">
+                        {{ row.current_binary }}
+                    </td>
+                    <td class="fw-bold border-end border-secondary">{{ row.current_decimal }}</td>
+                    <td class="font-monospace text-info">{{ row.t3 }}</td>
+                    <td class="font-monospace text-info">{{ row.t2 }}</td>
+                    <td class="font-monospace text-info">{{ row.t1 }}</td>
+                    <td class="font-monospace text-info border-end border-secondary">{{ row.t0 }}</td>
+                    <td class="font-monospace text-purple">{{ row.d3 }}</td>
+                    <td class="font-monospace text-purple">{{ row.d2 }}</td>
+                    <td class="font-monospace text-purple">{{ row.d1 }}</td>
+                    <td class="font-monospace text-purple border-end border-secondary">{{ row.d0 }}</td>
+                    <td class="font-monospace text-success fw-bold">{{ row.next_binary }}</td>
+                    <td class="fw-bold">{{ row.next_decimal }}</td>
+                    <td>
+                        {% if row.overflow %}
+                            <span class="badge bg-warning text-dark">OVERFLOW (15 &rarr; 0)</span>
+                        {% elif row.current_decimal == 0 %}
+                            <span class="badge bg-primary">INITIAL STATE</span>
+                        {% else %}
+                            <span class="text-muted small">Normal Increment</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

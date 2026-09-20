@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block header_title %}System Dashboard{% endblock %}
+{% block header_subtitle %}Real-time Flip-Flop State & Attendance Token Monitor{% endblock %}
+
+{% block content %}
+<!-- Top Metrics Row -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="custom-card">
+            <div class="card-title-sm">
+                <span>Latest Token</span>
+                <i class="bi bi-ticket-detailed text-cyan"></i>
+            </div>
+            <div class="card-value font-monospace text-info" id="stat-current-token">{{ status.current_token }}</div>
+            <div class="small text-muted mt-2 d-flex justify-content-between">
+                <span>Current Cycle: <strong class="text-light" id="stat-cycle">{{ status.cycle }}</strong></span>
+                <span class="badge bg-primary">Mod-16</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+        <div class="custom-card">
+            <div class="card-title-sm">
+                <span>Counter Value</span>
+                <i class="bi bi-123 text-purple"></i>
+            </div>
+            <div class="card-value text-purple" id="stat-counter-val">{{ status.counter_value }}</div>
+            <div class="small text-muted mt-2">
+                Binary: <span class="font-monospace text-light fw-bold" id="stat-binary-state">{{ status.binary_state }}</span> (Next: {{ status.next_binary }})
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+        <div class="custom-card">
+            <div class="card-title-sm">
+                <span>Successful Tokens</span>
+                <i class="bi bi-check2-circle text-success"></i>
+            </div>
+            <div class="card-value text-success" id="stat-successful-tokens">{{ status.successful_tokens }}</div>
+            <div class="small text-muted mt-2">
+                Total Records: <strong class="text-light" id="stat-total-records">{{ status.total_records }}</strong>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+        <div class="custom-card">
+            <div class="card-title-sm">
+                <span>Faults & Duplicates</span>
+                <i class="bi bi-shield-exclamation text-danger"></i>
+            </div>
+            <div class="card-value text-danger" id="stat-fault-count">{{ status.fault_count }}</div>
+            <div class="small text-muted mt-2">
+                Duplicates: <span class="text-warning fw-bold" id="stat-duplicate-attempts">{{ status.duplicate_attempts }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Digital Logic Flip-Flop Display Card -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-8">
+        <div class="custom-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="m-0 fw-bold text-light"><i class="bi bi-cpu me-2 text-info"></i>4-Bit Flip-Flop Register States</h5>
+                    <div class="small text-muted">Synchronous state Q3 Q2 Q1 Q0 (Q3 = MSB, Q0 = LSB)</div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-cyan" onclick="triggerClockPulse()" id="btn-clock-pulse">
+                        <i class="bi bi-broadcast me-1"></i> Clock Pulse
+                    </button>
+                    <a href="/generator" class="btn btn-sm btn-primary-tech">
+                        <i class="bi bi-plus-circle me-1"></i> Generate Token
+                    </a>
+                </div>
+            </div>
+
+            <!-- Glowing LEDs -->
+            <div class="p-3 bg-dark border border-secondary rounded-3 text-center mb-3">
+                <div class="led-group">
+                    <div class="led-item">
+                        <div class="led-indicator {% if status.q3 == 1 %}on{% endif %}" id="led-q3">{{ status.q3 }}</div>
+                        <div class="led-label">Q3 (MSB)</div>
+                        <div class="text-muted" style="font-size: 0.75rem;">Bit 3 (Weight 8)</div>
+                    </div>
+                    <div class="text-muted fs-3">·</div>
+                    <div class="led-item">
+                        <div class="led-indicator {% if status.q2 == 1 %}on{% endif %}" id="led-q2">{{ status.q2 }}</div>
+                        <div class="led-label">Q2</div>
+                        <div class="text-muted" style="font-size: 0.75rem;">Bit 2 (Weight 4)</div>
+                    </div>
+                    <div class="text-muted fs-3">·</div>
+                    <div class="led-item">
+                        <div class="led-indicator {% if status.q1 == 1 %}on{% endif %}" id="led-q1">{{ status.q1 }}</div>
+                        <div class="led-label">Q1</div>
+                        <div class="text-muted" style="font-size: 0.75rem;">Bit 1 (Weight 2)</div>
+                    </div>
+                    <div class="text-muted fs-3">·</div>
+                    <div class="led-item">
+                        <div class="led-indicator {% if status.q0 == 1 %}on{% endif %}" id="led-q0">{{ status.q0 }}</div>
+                        <div class="led-label">Q0 (LSB)</div>
+                        <div class="text-muted" style="font-size: 0.75rem;">Bit 0 (Weight 1)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Excitation Summary Bar -->
+            <div class="row g-2 text-center small font-monospace text-muted">
+                <div class="col-md-6 p-2 rounded bg-dark border border-secondary">
+                    <span class="text-info fw-bold">T-Inputs:</span>
+                    T3={{ status.excitations.t3 }}, T2={{ status.excitations.t2 }}, T1={{ status.excitations.t1 }}, T0={{ status.excitations.t0 }}
+                </div>
+                <div class="col-md-6 p-2 rounded bg-dark border border-secondary">
+                    <span class="text-purple fw-bold">D-Inputs:</span>
+                    D3={{ status.excitations.d3 }}, D2={{ status.excitations.d2 }}, D1={{ status.excitations.d1 }}, D0={{ status.excitations.d0 }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Status Card -->
+    <div class="col-lg-4">
+        <div class="custom-card h-100 d-flex flex-column justify-content-between">
+            <div>
+                <h5 class="fw-bold text-light mb-3"><i class="bi bi-info-circle me-2 text-primary"></i>System Health</h5>
+                <ul class="list-group list-group-flush bg-transparent">
+                    <li class="list-group-item bg-transparent text-light d-flex justify-content-between px-0 py-2 border-secondary">
+                        <span>Digital Counter Engine</span>
+                        <span class="badge bg-success">SYNCHRONOUS MOD-16</span>
+                    </li>
+                    <li class="list-group-item bg-transparent text-light d-flex justify-content-between px-0 py-2 border-secondary">
+                        <span>Active Session</span>
+                        <span class="font-monospace text-info">Cycle {{ status.cycle }}</span>
+                    </li>
+                    <li class="list-group-item bg-transparent text-light d-flex justify-content-between px-0 py-2 border-secondary">
+                        <span>Duplicate Detection</span>
+                        <span class="badge bg-primary">STRICT LOCK</span>
+                    </li>
+                    <li class="list-group-item bg-transparent text-light d-flex justify-content-between px-0 py-2 border-secondary">
+                        <span>Global Record ID</span>
+                        <span class="badge bg-dark border">DECOUPLED REC-XXX</span>
+                    </li>
+                </ul>
+            </div>
+            <div class="mt-3 pt-3 border-top border-secondary d-flex gap-2">
+                <a href="/simulator" class="btn btn-secondary-tech w-100 text-center">
+                    <i class="bi bi-diagram-3 me-1"></i> Open Simulator
+                </a>
+                <a href="/truth-table" class="btn btn-secondary-tech w-100 text-center">
+                    <i class="bi bi-table me-1"></i> Truth Table
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Events & Activity Log -->
+<div class="row g-3">
+    <div class="col-12">
+        <div class="custom-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold text-light m-0"><i class="bi bi-activity me-2 text-warning"></i>Live System Activity & Audit Log</h5>
+                <a href="/records" class="btn btn-sm btn-outline-light">View All Records <i class="bi bi-arrow-right ms-1"></i></a>
+            </div>
+            <div class="table-responsive">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>Event ID</th>
+                            <th>Event Type</th>
+                            <th>Description</th>
+                            <th>Timestamp</th>
+                            <th>Cycle</th>
+                            <th>Counter State</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if recent_events %}
+                            {% for ev in recent_events %}
+                            <tr>
+                                <td class="font-monospace fw-bold">{{ ev.event_id }}</td>
+                                <td>
+                                    {% if ev.event_type == 'TOKEN_GENERATED' %}
+                                        <span class="badge bg-success">TOKEN_GENERATED</span>
+                                    {% elif ev.event_type == 'DUPLICATE_STUDENT_ATTENDANCE' %}
+                                        <span class="badge bg-warning text-dark">DUPLICATE</span>
+                                    {% elif ev.event_type == 'COUNTER_OVERFLOW' %}
+                                        <span class="badge bg-info text-dark">OVERFLOW</span>
+                                    {% elif ev.event_type == 'RESET' %}
+                                        <span class="badge bg-danger">RESET</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ ev.event_type }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ ev.description }}</td>
+                                <td class="text-muted small">{{ ev.timestamp }}</td>
+                                <td><span class="badge bg-dark border">Cycle {{ ev.cycle }}</span></td>
+                                <td class="font-monospace text-info">{{ ev.counter_value }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-3">No activity logged yet.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

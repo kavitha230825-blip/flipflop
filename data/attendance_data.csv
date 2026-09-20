@@ -1,0 +1,4 @@
+record_id,student_id,student_name,token,cycle,counter_value,binary_state,timestamp,status
+REC-001,25UAD121,kaleeswari,ATT-002,1,2,0010,2026-09-20 14:14:47,PRESENT
+REC-002,25UAD099,shanthiya,ATT-007,1,7,0111,2026-09-20 14:16:53,PRESENT
+REC-003,25UAD122,janani ramya,ATT-008,1,8,1000,2026-09-20 14:17:11,PRESENT

@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+
+{% block title %}Flip-Flop Simulator{% endblock %}
+{% block header_title %}4-Bit Flip-Flop Circuit Simulator{% endblock %}
+{% block header_subtitle %}Interactive digital logic hardware visualization for EC2201 Digital Systems{% endblock %}
+
+{% block content %}
+<!-- Control Bar -->
+<div class="custom-card mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div>
+            <h5 class="fw-bold text-light m-0"><i class="bi bi-cpu-fill me-2 text-info"></i>Single-Step Clock Control</h5>
+            <div class="text-muted small">Inject a rising-edge clock pulse (\(\uparrow\)) to step through state transitions.</div>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-cyan px-4 py-2" onclick="triggerClockPulse()" id="btn-clock-pulse">
+                <i class="bi bi-broadcast fs-5 me-1"></i> Send Clock Pulse
+            </button>
+            <button class="btn btn-outline-warning" onclick="handleResetCounter()">
+                <i class="bi bi-arrow-counterclockwise me-1"></i> Reset (0000)
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- State Flow Cards -->
+<div class="row g-3 mb-4 text-center">
+    <div class="col-md">
+        <div class="custom-card py-3">
+            <div class="small text-muted fw-bold">1. CLOCK PULSE</div>
+            <div class="fs-4 fw-bold text-primary mt-1"><i class="bi bi-reception-4"></i> Active High (\(\uparrow\))</div>
+        </div>
+    </div>
+    <div class="col-md">
+        <div class="custom-card py-3">
+            <div class="small text-muted fw-bold">2. PREVIOUS STATE</div>
+            <div class="fs-4 font-monospace fw-bold text-muted mt-1" id="sim-prev-binary">
+                {% if status.latest_transition %}{{ status.latest_transition.previous_state.binary }}{% else %}0000{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md">
+        <div class="custom-card py-3">
+            <div class="small text-muted fw-bold">3. CURRENT STATE (Q3..Q0)</div>
+            <div class="fs-4 font-monospace fw-bold text-info mt-1" id="sim-curr-binary">{{ status.binary_state }}</div>
+        </div>
+    </div>
+    <div class="col-md">
+        <div class="custom-card py-3">
+            <div class="small text-muted fw-bold">4. COUNTER DECIMAL</div>
+            <div class="fs-4 fw-bold text-purple mt-1" id="sim-decimal-val">{{ status.counter_value }}</div>
+        </div>
+    </div>
+    <div class="col-md">
+        <div class="custom-card py-3">
+            <div class="small text-muted fw-bold">5. GENERATED TOKEN</div>
+            <div class="fs-5 font-monospace fw-bold text-success mt-1" id="sim-token">{{ status.current_token }} (Cycle {{ status.cycle }})</div>
+        </div>
+    </div>
+</div>
+
+<!-- Circuit Flip-Flop Blocks -->
+<div class="custom-card mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold text-light m-0"><i class="bi bi-diagram-3-fill me-2 text-cyan"></i>Synchronous Flip-Flop Register Array</h5>
+        <span class="badge bg-primary">Mod-16 Binary Up-Counter</span>
+    </div>
+
+    <div class="ff-container">
+        <!-- Q3 Flip-Flop -->
+        <div class="ff-box active">
+            <div class="ff-header">Flip-Flop 3 (Q3)</div>
+            <div class="small text-muted mb-2">Most Significant Bit (Weight 8)</div>
+            <div class="ff-pins">
+                <span>T3 = Q2·Q1·Q0</span>
+                <span>D3 = Q3 ⊕ (Q2·Q1·Q0)</span>
+            </div>
+            <div class="p-2 bg-dark rounded border border-secondary mb-2">
+                <div class="small text-muted">OUTPUT (Q3)</div>
+                <div class="ff-state-value {% if status.q3 == 1 %}high{% endif %}" id="sim-val-q3">{{ status.q3 }}</div>
+                <div class="small text-muted font-monospace">ON/OFF: {% if status.q3 == 1 %}<span class="text-success fw-bold">ON (HIGH)</span>{% else %}<span class="text-secondary">OFF (LOW)</span>{% endif %}</div>
+            </div>
+            <div class="d-flex justify-content-around small font-monospace text-muted">
+                <span>T3: <strong class="text-info" id="sim-t-q3">{{ status.excitations.t3 }}</strong></span>
+                <span>D3: <strong class="text-purple" id="sim-d-q3">{{ status.excitations.d3 }}</strong></span>
+            </div>
+        </div>
+
+        <!-- Q2 Flip-Flop -->
+        <div class="ff-box active">
+            <div class="ff-header">Flip-Flop 2 (Q2)</div>
+            <div class="small text-muted mb-2">Bit 2 (Weight 4)</div>
+            <div class="ff-pins">
+                <span>T2 = Q1·Q0</span>
+                <span>D2 = Q2 ⊕ (Q1·Q0)</span>
+            </div>
+            <div class="p-2 bg-dark rounded border border-secondary mb-2">
+                <div class="small text-muted">OUTPUT (Q2)</div>
+                <div class="ff-state-value {% if status.q2 == 1 %}high{% endif %}" id="sim-val-q2">{{ status.q2 }}</div>
+                <div class="small text-muted font-monospace">ON/OFF: {% if status.q2 == 1 %}<span class="text-success fw-bold">ON (HIGH)</span>{% else %}<span class="text-secondary">OFF (LOW)</span>{% endif %}</div>
+            </div>
+            <div class="d-flex justify-content-around small font-monospace text-muted">
+                <span>T2: <strong class="text-info" id="sim-t-q2">{{ status.excitations.t2 }}</strong></span>
+                <span>D2: <strong class="text-purple" id="sim-d-q2">{{ status.excitations.d2 }}</strong></span>
+            </div>
+        </div>
+
+        <!-- Q1 Flip-Flop -->
+        <div class="ff-box active">
+            <div class="ff-header">Flip-Flop 1 (Q1)</div>
+            <div class="small text-muted mb-2">Bit 1 (Weight 2)</div>
+            <div class="ff-pins">
+                <span>T1 = Q0</span>
+                <span>D1 = Q1 ⊕ Q0</span>
+            </div>
+            <div class="p-2 bg-dark rounded border border-secondary mb-2">
+                <div class="small text-muted">OUTPUT (Q1)</div>
+                <div class="ff-state-value {% if status.q1 == 1 %}high{% endif %}" id="sim-val-q1">{{ status.q1 }}</div>
+                <div class="small text-muted font-monospace">ON/OFF: {% if status.q1 == 1 %}<span class="text-success fw-bold">ON (HIGH)</span>{% else %}<span class="text-secondary">OFF (LOW)</span>{% endif %}</div>
+            </div>
+            <div class="d-flex justify-content-around small font-monospace text-muted">
+                <span>T1: <strong class="text-info" id="sim-t-q1">{{ status.excitations.t1 }}</strong></span>
+                <span>D1: <strong class="text-purple" id="sim-d-q1">{{ status.excitations.d1 }}</strong></span>
+            </div>
+        </div>
+
+        <!-- Q0 Flip-Flop -->
+        <div class="ff-box active">
+            <div class="ff-header">Flip-Flop 0 (Q0)</div>
+            <div class="small text-muted mb-2">Least Significant Bit (Weight 1)</div>
+            <div class="ff-pins">
+                <span>T0 = 1</span>
+                <span>D0 = NOT Q0</span>
+            </div>
+            <div class="p-2 bg-dark rounded border border-secondary mb-2">
+                <div class="small text-muted">OUTPUT (Q0)</div>
+                <div class="ff-state-value {% if status.q0 == 1 %}high{% endif %}" id="sim-val-q0">{{ status.q0 }}</div>
+                <div class="small text-muted font-monospace">ON/OFF: {% if status.q0 == 1 %}<span class="text-success fw-bold">ON (HIGH)</span>{% else %}<span class="text-secondary">OFF (LOW)</span>{% endif %}</div>
+            </div>
+            <div class="d-flex justify-content-around small font-monospace text-muted">
+                <span>T0: <strong class="text-info" id="sim-t-q0">{{ status.excitations.t0 }}</strong></span>
+                <span>D0: <strong class="text-purple" id="sim-d-q0">{{ status.excitations.d0 }}</strong></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clock line visual diagram -->
+    <div class="clock-wire mt-3">
+        <i class="bi bi-clock-fill text-warning me-2"></i>
+        <span>COMMON CLOCK BUS &rarr; [CLK input on FF0, FF1, FF2, FF3 connected synchronously in parallel]</span>
+    </div>
+</div>
+
+<!-- Transition State Table for Active Step -->
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="custom-card h-100">
+            <h5 class="fw-bold text-light mb-3"><i class="bi bi-table me-2 text-primary"></i>Current Step Transition Breakdown</h5>
+            <div class="table-responsive">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>Flip-Flop</th>
+                            <th class="text-end">Current (Q)</th>
+                            <th class="text-end">T Input</th>
+                            <th class="text-end">D Input</th>
+                            <th class="text-end">Next State (Q+)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="fw-bold font-monospace text-info">Q0 (LSB)</td>
+                            <td class="text-end font-monospace">{{ status.q0 }}</td>
+                            <td class="text-end font-monospace">{{ status.excitations.t0 }}</td>
+                            <td class="text-end font-monospace">{{ status.excitations.d0 }}</td>
+                            <td class="text-end font-monospace text-success fw-bold">{{ status.next_binary[3] }}</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold font-monospace text-info">Q1</td>
+                            <td class="text-end font-monospace">{{ status.q1 }}</td>
+                            <td class="text-end font-monospace">{{ status.excitations.t1 }}</td>
+                            <td class="text-end font-monospace">{{ status.excitations.d1 }}</td>
+                            <td class="text-end font-monospace text-success fw-bold">{{ status.next_binary[2] }}</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold font-monospace text-info">Q2</td>
+                            <td class="text-end font-monospace">{{ status.q2 }}</td>
+                            <td class="text-end font-monospace">{{ status.excitations.t2 }}</td>
+                            <td class="text-end font-monospace">{{ status.excitations.d2 }}</td>
+                            <td class="text-end font-monospace text-success fw-bold">{{ status.next_binary[1] }}</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold font-monospace text-info">Q3 (MSB)</td>
+                            <td class="text-end font-monospace">{{ status.q3 }}</td>
+                            <td class="text-end font-monospace">{{ status.excitations.t3 }}</td>
+                            <td class="text-end font-monospace">{{ status.excitations.d3 }}</td>
+                            <td class="text-end font-monospace text-success fw-bold">{{ status.next_binary[0] }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- How it Works Explanation Card -->
+    <div class="col-lg-6">
+        <div class="custom-card h-100">
+            <h5 class="fw-bold text-light mb-3"><i class="bi bi-lightbulb-fill me-2 text-warning"></i>How Flip-Flops Change State</h5>
+            <div class="small text-muted" style="line-height: 1.7;">
+                <p>
+                    In this synchronous 4-bit counter, all four flip-flops receive the clock pulse simultaneously. The state transition behavior follows exact digital logic rules:
+                </p>
+                <ul>
+                    <li><strong class="text-light">Q0 toggles on every single clock pulse</strong> because its toggle input is tied to constant HIGH (\(T_0 = 1\)).</li>
+                    <li><strong class="text-light">Q1 toggles only when \(Q_0 = 1\)</strong> (\(T_1 = Q_0\)), producing the standard binary counting frequency division by 2.</li>
+                    <li><strong class="text-light">Q2 toggles only when both \(Q_0 = 1\) AND \(Q_1 = 1\)</strong> (\(T_2 = Q_1 \cdot Q_0\)), signaling a carry into bit 2.</li>
+                    <li><strong class="text-light">Q3 toggles only when \(Q_0, Q_1,\) and \(Q_2\) are all 1</strong> (\(T_3 = Q_2 \cdot Q_1 \cdot Q_0\)), signaling a carry into MSB.</li>
+                    <li>When state reaches <strong class="text-warning">1111 (15)</strong>, all toggle inputs are 1, so on the next clock pulse all four flip-flops toggle back to <strong class="text-info">0000 (0)</strong>, completing one full 16-state cycle.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

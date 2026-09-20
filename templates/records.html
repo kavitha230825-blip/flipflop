@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance Records{% endblock %}
+{% block header_title %}Attendance Records Log{% endblock %}
+{% block header_subtitle %}Historical database of all verified student attendance tokens{% endblock %}
+
+{% block content %}
+<div class="custom-card mb-4">
+    <div class="row g-3 align-items-center justify-content-between">
+        <div class="col-md-4">
+            <div class="input-group">
+                <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control form-control-custom" id="record-search-input" placeholder="Search student, token, record ID..." onkeyup="filterRecordsTable()">
+            </div>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select form-select-custom" id="record-cycle-select" onchange="filterRecordsTable()">
+                <option value="ALL">Filter: All Cycles</option>
+                <option value="1">Cycle 1</option>
+                <option value="2">Cycle 2</option>
+                <option value="3">Cycle 3</option>
+                <option value="4">Cycle 4</option>
+            </select>
+        </div>
+        <div class="col-md-5 text-md-end">
+            <a href="/api/export-records" class="btn btn-primary-tech btn-sm me-2">
+                <i class="bi bi-file-earmark-arrow-down-fill me-1"></i> Export to CSV
+            </a>
+            <button class="btn btn-danger-tech btn-sm" onclick="handleClearData()">
+                <i class="bi bi-trash3 me-1"></i> Clear All
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="custom-card">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold text-light m-0"><i class="bi bi-journal-text me-2 text-info"></i>Recorded Entries (<span id="visible-records-count">{{ records|length }}</span> total)</h5>
+        <span class="badge bg-dark border text-muted">CSV Persistence Engine</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table-custom" id="records-table">
+            <thead>
+                <tr>
+                    <th>Record ID</th>
+                    <th>Student ID</th>
+                    <th>Student Name</th>
+                    <th>Token</th>
+                    <th>Cycle</th>
+                    <th>Counter Dec</th>
+                    <th>Binary State</th>
+                    <th>Timestamp</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if records %}
+                    {% for rec in records[::-1] %}
+                    <tr data-cycle="{{ rec.cycle }}">
+                        <td class="font-monospace fw-bold text-light">{{ rec.record_id }}</td>
+                        <td class="font-monospace text-info fw-semibold">{{ rec.student_id }}</td>
+                        <td class="fw-semibold">{{ rec.student_name }}</td>
+                        <td class="font-monospace text-cyan fw-bold">{{ rec.token }}</td>
+                        <td><span class="badge bg-primary">Cycle {{ rec.cycle }}</span></td>
+                        <td class="font-monospace">{{ rec.counter_value }}</td>
+                        <td class="font-monospace text-warning">{{ rec.binary_state }}</td>
+                        <td class="small text-muted">{{ rec.timestamp }}</td>
+                        <td><span class="badge bg-success">{{ rec.status }}</span></td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-4">No attendance records generated yet. Visit the <a href="/generator" class="text-info">Token Generator</a> to issue tokens.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

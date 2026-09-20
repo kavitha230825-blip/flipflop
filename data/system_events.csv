@@ -1,0 +1,10 @@
+event_id,event_type,description,timestamp,cycle,counter_value
+EVT-001,SESSION_CLEARED,All attendance records and system logs cleared by administrator.,2026-09-20 14:07:20,1,0000
+EVT-002,MANUAL_CLOCK_PULSE,Manual clock pulse triggered. State transitioned to 0001 (1),2026-09-20 14:14:15,1,0001
+EVT-003,TOKEN_GENERATED,"Token ATT-002 issued to 25UAD121 (Record: REC-001, State: 0010, Cycle: 1)",2026-09-20 14:14:47,1,0010
+EVT-004,MANUAL_CLOCK_PULSE,Manual clock pulse triggered. State transitioned to 0011 (3),2026-09-20 14:15:27,1,0011
+EVT-005,MANUAL_CLOCK_PULSE,Manual clock pulse triggered. State transitioned to 0100 (4),2026-09-20 14:15:42,1,0100
+EVT-006,MANUAL_CLOCK_PULSE,Manual clock pulse triggered. State transitioned to 0101 (5),2026-09-20 14:15:43,1,0101
+EVT-007,MANUAL_CLOCK_PULSE,Manual clock pulse triggered. State transitioned to 0110 (6),2026-09-20 14:15:44,1,0110
+EVT-008,TOKEN_GENERATED,"Token ATT-007 issued to 25UAD099 (Record: REC-002, State: 0111, Cycle: 1)",2026-09-20 14:16:53,1,0111
+EVT-009,TOKEN_GENERATED,"Token ATT-008 issued to 25UAD122 (Record: REC-003, State: 1000, Cycle: 1)",2026-09-20 14:17:11,1,1000
